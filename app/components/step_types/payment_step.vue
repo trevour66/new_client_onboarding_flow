@@ -65,6 +65,7 @@ const submitButton = ref(null);
 const msg = ref(null);
 let card: any = null;
 
+/*
 onMounted(async () => {
   await prepare_setup_intent();
 
@@ -129,61 +130,166 @@ onMounted(async () => {
     }
   });
 });
+*/
+
+onMounted(async () => {
+  await prepare_setup_intent();
+
+  if (!stripe) return;
+
+  const clientSecret_local = clientSecret?.value ?? false;
+
+  if (!clientSecret_local) return;
+
+  const elements = stripe.elements();
+
+  console.log("here");
+
+  /* ---------------- CARD ---------------- */
+  // PAYMENT REQUEST BUTTON
+  const paymentRequest = stripe.paymentRequest({
+    country: "AU",
+    currency: "aud",
+    total: { label: "Verify Card", amount: 100 },
+    requestPayerName: true,
+    requestPayerEmail: true,
+  });
+
+  const prButton = elements.create("paymentRequestButton", {
+    paymentRequest: paymentRequest,
+    style: { paymentRequestButton: { type: "default", theme: "light" } },
+  });
+
+  paymentRequest.canMakePayment().then((result) => {
+    if (result) {
+      prButton.mount("#payment-request-button");
+    } else {
+    }
+  });
+
+  console.log("here 2");
+
+  card = elements.create("card", {
+    style: { base: { fontFamily: "Poppins", fontSize: "16px" } },
+  });
+  card.mount("#card-element");
+
+  // Handle available auto payment method
+  paymentRequest.on("paymentmethod", async (event) => {
+    console.log("paymentmethod");
+
+    console.log("Payment Request event:", event);
+    const { setupIntent, error } = await stripe.confirmCardSetup(
+      clientSecret_local,
+      {
+        payment_method: event.paymentMethod.id,
+      },
+      {
+        handleActions: false,
+      },
+    );
+
+    if (error) {
+      event.complete("fail");
+      console.log(error);
+      return;
+    }
+
+    event.complete("success");
+
+    if (setupIntent.status === "requires_action") {
+      const { error: actionError } =
+        await stripe.confirmCardSetup(clientSecret_local);
+
+      if (actionError) {
+        console.log(actionError);
+        return;
+      }
+    }
+  });
+  // End
+
+  console.log("here 3");
+
+  /* ---------------- BANK ---------------- */
+  const auBankAccount = elements.create("auBankAccount");
+  auBankAccount.mount("#au-bank-account-element");
+
+  auBankAccount.on("change", function (event) {
+    const bankName = document.getElementById("bank-name");
+    if (!bankName) return;
+    if (event.bankName && event.branchName) {
+      bankName.textContent = `${event.bankName} (${event.branchName})`;
+      bankName.classList.add("visible");
+    } else if (event.bankName) {
+      bankName.textContent = `${event.bankName}`;
+      bankName.classList.add("visible");
+    } else {
+      bankName.classList.remove("visible");
+    }
+  });
+});
 
 // Manual form submission
+// const submitPayment = async () => {
+//   if (!stripe) return;
+//   if (!clientSecret.value) return;
+
+//   const { setupIntent, error } = await stripe.confirmCardSetup(
+//     clientSecret.value,
+//     {
+//       payment_method: {
+//         card,
+//       },
+//     },
+//   );
+
+//   if (error) {
+//     return;
+//   }
+// };
+
 const submitPayment = async () => {
   if (!stripe) return;
-  if (!clientSecret.value) return;
 
-  const { setupIntent, error } = await stripe.confirmCardSetup(
-    clientSecret.value,
-    {
-      payment_method: {
-        card,
-      },
+  console.log("here22");
+  const clientSecret_local = clientSecret?.value ?? false;
+
+  if (!clientSecret_local) return;
+
+  console.log("here23");
+
+  const result = await stripe.confirmCardSetup(clientSecret_local, {
+    payment_method: {
+      card,
+      billing_details: { email: "peteriniubong@gmail.com" },
     },
-  );
+  });
 
-  if (error) {
-    return;
-  }
+  console.log(result);
 };
 </script>
 
 <template>
-  {{ clientSecret }}
-  <div>
-    <!-- Payment Request Button -->
+  here {{ clientSecret }}
+
+  <br />
+  <br />
+  <br />
+
+  <div id="card-section" class="method-section active">
     <div id="payment-request-button"></div>
-
-    <!-- Manual Card Form -->
-    <form id="verify-form" @submit.prevent="">
-      <div id="card-element"><!-- Stripe Card Element will mount here --></div>
-      <input v-model="first" placeholder="First Name" required />
-      <input v-model="last" placeholder="Last Name" required />
-      <input v-model="email" type="email" placeholder="Email" required />
-      <button ref="submitButton" type="submit">Verify Card</button>
-      <p ref="msg"></p>
-    </form>
-
-    <!-- Success Screen -->
-    <div id="success-screen" style="display: none">
-      <h3>Verification Successful!</h3>
-    </div>
+    <label>Card Details *</label>
+    <div id="card-element"></div>
   </div>
 
-  <Card>
-    <CardHeader>
-      <CardTitle>Subscribe</CardTitle>
-      <CardDescription>Secure payment</CardDescription>
-    </CardHeader>
+  <!-- BANK -->
+  <div id="bank-section" class="method-section">
+    <label>Bank account</label>
+    <div id="au-bank-account-element"></div>
 
-    <CardContent>
-      <div id="payment-element" />
-    </CardContent>
+    <div id="bank-name"></div>
+  </div>
 
-    <CardFooter>
-      <Button class="w-full" @click="submitPayment"> Subscribe </Button>
-    </CardFooter>
-  </Card>
+  <Button class="w-full" @click="submitPayment"> Subscribe </Button>
 </template>
