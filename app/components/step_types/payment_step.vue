@@ -13,56 +13,29 @@ const prepare_setup_intent = async () => {
   const res = await $fetch("/api/stripe/create-setup-intent", {
     method: "POST",
     body: {
-      customer_id: "cus_TsfpJb7joNtvcK",
+      customer_id: "cus_TshTyVwtLbFBdt",
     },
   });
 
   if (!res) return;
 
   clientSecret.value = res.setupIntentClientSecret;
-
-  // console.log("SUBSCRIPTION RESPONSE: ", res);
-
-  // clientSecret.value =
-  //   "pi_3SurrK1CAJ2s4WZl192MDFk7_secret_jIkCTDC9k25Qo4aAr0fFJE4NH";
-
-  // elements.value = stripe.elements({
-  //   clientSecret: clientSecret.value,
-  // });
-
-  // const paymentElement = elements.value.create("payment");
-  // paymentElement.mount("#payment-element");
 };
 
-const prepare_payment = async () => {
+const prepare_payment = async (payment_method_to_be_used: string) => {
   if (!stripe) return;
   const res = await $fetch("/api/stripe/create-subscription", {
     method: "POST",
     body: {
       priceId: "price_1Suraz1CAJ2s4WZl5BjXPdaN",
-      customer_id: "cus_TsfpJb7joNtvcK",
+      customer_id: "cus_TshTyVwtLbFBdt",
+      payment_method: payment_method_to_be_used,
     },
   });
 
-  // console.log("SUBSCRIPTION RESPONSE: ", res);
-
-  // clientSecret.value =
-  //   "pi_3SurrK1CAJ2s4WZl192MDFk7_secret_jIkCTDC9k25Qo4aAr0fFJE4NH";
-
-  // elements.value = stripe.elements({
-  //   clientSecret: clientSecret.value,
-  // });
-
-  // const paymentElement = elements.value.create("payment");
-  // paymentElement.mount("#payment-element");
+  console.log("SUBSCRIPTION RESPONSE: ", res);
 };
 
-// Refs
-const first = ref("");
-const last = ref("");
-const email = ref("");
-const submitButton = ref(null);
-const msg = ref(null);
 let card: any = null;
 
 /*
@@ -266,7 +239,22 @@ const submitPayment = async () => {
     },
   });
 
-  console.log(result);
+  const setup = result?.setupIntent ?? false;
+  const error = result?.error ?? false;
+
+  if (error) return;
+
+  const payment_method = result.setupIntent?.payment_method ?? false;
+
+  if (!payment_method) return;
+
+  console.log(result.setupIntent?.payment_method);
+
+  if (typeof payment_method === "string") {
+    await prepare_payment(payment_method);
+  } else {
+    await prepare_payment(payment_method.id);
+  }
 };
 </script>
 

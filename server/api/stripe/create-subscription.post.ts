@@ -5,12 +5,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
-  const { userId, priceId } = body;
+  const { customer_id, priceId, payment_method } = body;
 
   // 1. Fetch customer
-  const customer = await stripe.customers.retrieve(userId);
+  const customer = await stripe.customers.retrieve(customer_id);
 
-  // 2. Create subscription (INCOMPLETE)
+  // 2. Create subscription
   const subscription = await stripe.subscriptions.create({
     collection_method: "charge_automatically",
     payment_behavior: "default_incomplete",
@@ -20,16 +20,13 @@ export default defineEventHandler(async (event) => {
     payment_settings: {
       save_default_payment_method: "on_subscription",
     },
-    expand: ["latest_invoice.payment_intent"],
   });
 
   const latestInvoice = subscription.latest_invoice;
 
-  if (!latestInvoice || typeof latestInvoice === "string") {
+  if (!latestInvoice) {
     throw new Error("Invoice missing");
   }
-
-  //   console.log("LATEST INVOICE: ", latestInvoice);
 
   const invoiceId =
     typeof subscription.latest_invoice === "string"
@@ -40,36 +37,12 @@ export default defineEventHandler(async (event) => {
     throw new Error("Invoice not created");
   }
 
-  const invoice = await stripe.invoices.retrieve(invoiceId);
-
-  // 2️⃣ Create a PaymentIntent for that amount & customer
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: invoice.amount_due,
-    currency: invoice.currency,
-    customer: userId,
-    metadata: {
-      invoice_id: invoice.id,
-      subscription_id: subscription.id as string,
-    },
-    automatic_payment_methods: { enabled: true },
-    setup_future_usage: "off_session",
-  });
-
-  //   await stripe.invoices.update(invoice.id, {
-  //     payment_intent: paymentIntent.id,
-  //   });
-
-  const paidInvoice = await stripe.invoices.pay(invoice.id, {
+  const paidInvoice = await stripe.invoices.pay(invoiceId, {
+    payment_method,
     expand: ["payment_intent"],
   });
 
   console.log("LATEST INVOICE: ", paidInvoice);
-  console.log("LATEST paymentIntent: ", paymentIntent);
 
-  //   const paymentIntent = subscription.latest_invoice
-  //     ?.payment_intent as Stripe.PaymentIntent;
-
-  //   console.log("SUBSCRIPTION CREATED: ", subscription.id);
-  //   console.log("paymentIntent CREATED: ", paymentIntent);
   return;
 });

@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     usage: "off_session",
   });
 
-  console.log(setupIntent);
+  // console.log(setupIntent);
 
   // 2️⃣ Return client_secret for frontend
   return {
