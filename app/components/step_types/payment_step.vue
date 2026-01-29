@@ -13,7 +13,7 @@ const prepare_setup_intent = async () => {
   const res = await $fetch("/api/stripe/create-setup-intent", {
     method: "POST",
     body: {
-      userId: "cus_TsfpJb7joNtvcK",
+      customer_id: "cus_TsfpJb7joNtvcK",
     },
   });
 
@@ -40,7 +40,7 @@ const prepare_payment = async () => {
     method: "POST",
     body: {
       priceId: "price_1Suraz1CAJ2s4WZl5BjXPdaN",
-      userId: "cus_TsfpJb7joNtvcK",
+      customer_id: "cus_TsfpJb7joNtvcK",
     },
   });
 
