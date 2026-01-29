@@ -12,6 +12,7 @@ export default defineEventHandler(async (event) => {
     automatic_payment_methods: {
       enabled: true,
     },
+    usage: "off_session",
   });
 
   // 2️⃣ Return client_secret for frontend
