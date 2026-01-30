@@ -1,11 +1,4 @@
 <script setup lang="ts">
-import { IframeResizer } from "@iframe-resizer/vue";
-
-/**
- * 'iframeResize' is declared but its value is never read.ts(6133)
-'"iframe-resizer"' has no exported member named 'iframeResize'. Did you mean 'iframeResizer'?ts(2724)
-index.d.ts(361, 14): 'iframeResizer' is declared here.
- */
 const signUrl = ref("");
 const iframeRef = ref<HTMLIFrameElement | null>(null);
 
