@@ -1,5 +1,5 @@
 <template>
-  <div>
-    <StepTypesPaymentStep />
-  </div>
+  <NuxtLayout>
+    <NuxtPage />
+  </NuxtLayout>
 </template>

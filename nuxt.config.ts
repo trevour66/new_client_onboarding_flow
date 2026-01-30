@@ -9,7 +9,7 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
   },
 
-  modules: ["shadcn-nuxt"],
+  modules: ["shadcn-nuxt", "@pinia/nuxt", "@nuxtjs/supabase"],
 
   shadcn: {
     /**
@@ -24,5 +24,15 @@ export default defineNuxtConfig({
      * @default "@/components/ui"
      */
     componentDir: "@/components/ui",
+  },
+
+  supabase: {
+    redirectOptions: {
+      login: "/login",
+      callback: "/confirm",
+      include: undefined,
+      exclude: ["/proposals/**", "/api/**"],
+      saveRedirectToCookie: false,
+    },
   },
 });

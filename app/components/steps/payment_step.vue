@@ -6,7 +6,8 @@ const stripe = await loadStripe(
 );
 
 const clientSecret = ref<string | null>(null);
-const elements = ref<any>(null);
+// const elements = ref<any>(null);
+const current_tab = ref<"card" | "bank">("bank");
 
 const prepare_setup_intent = async () => {
   if (!stripe) return;
@@ -114,16 +115,46 @@ onMounted(async () => {
 
   if (!clientSecret_local) return;
 
-  const elements = stripe.elements();
+  const appearance = {
+    theme: "flat", // or 'stripe', 'night'
+    variables: {
+      colorPrimary: "#188bf6",
+      colorBackground: "#ffffff",
+      colorText: "#1a202c",
+      colorDanger: "#e93d3d",
+      borderRadius: "10px",
+      fontFamily: "Inter, system-ui, sans-serif",
+      spacingUnit: "4px",
+    },
+    rules: {
+      ".Input": {
+        border: "1px solid #cbd5e0",
+        boxShadow: "none",
+        padding: "12px",
+      },
+      ".Input:focus": {
+        border: "1px solid #188bf6",
+      },
+      ".Label": {
+        fontWeight: "600",
+      },
+      ".Tab": {
+        borderRadius: "8px",
+      },
+    },
+  };
 
-  console.log("here");
+  // Pass the appearance object to the Elements instance
+  const elements = stripe.elements({
+    clientSecret: clientSecret_local,
+  });
 
   /* ---------------- CARD ---------------- */
   // PAYMENT REQUEST BUTTON
   const paymentRequest = stripe.paymentRequest({
     country: "AU",
     currency: "aud",
-    total: { label: "Verify Card", amount: 100 },
+    total: { label: "Verify Card", amount: 0 },
     requestPayerName: true,
     requestPayerEmail: true,
   });
@@ -203,25 +234,6 @@ onMounted(async () => {
   });
 });
 
-// Manual form submission
-// const submitPayment = async () => {
-//   if (!stripe) return;
-//   if (!clientSecret.value) return;
-
-//   const { setupIntent, error } = await stripe.confirmCardSetup(
-//     clientSecret.value,
-//     {
-//       payment_method: {
-//         card,
-//       },
-//     },
-//   );
-
-//   if (error) {
-//     return;
-//   }
-// };
-
 const submitPayment = async () => {
   if (!stripe) return;
 
@@ -259,25 +271,162 @@ const submitPayment = async () => {
 </script>
 
 <template>
-  here {{ clientSecret }}
+  <div class="min-h-full w-full flex justify-center py-8">
+    <div id="container" class="custom_stripe">
+      <div class="w-full">
+        <div class="method-toggle mb-10">
+          <button
+            @click="current_tab = 'card'"
+            type="button"
+            id="card-tab"
+            :class="{
+              active: current_tab == 'card',
+            }"
+          >
+            Card
+          </button>
+          <button
+            @click="current_tab = 'bank'"
+            type="button"
+            id="bank-tab"
+            :class="{
+              active: current_tab == 'bank',
+            }"
+          >
+            Bank Account
+          </button>
+        </div>
+      </div>
 
-  <br />
-  <br />
-  <br />
+      <div
+        id="card-section"
+        v-if="current_tab === 'card'"
+        class="method-section active"
+      >
+        <div id="payment-request-button"></div>
+        <label>Card Details *</label>
+        <div id="card-element"></div>
+      </div>
 
-  <div id="card-section" class="method-section active">
-    <div id="payment-request-button"></div>
-    <label>Card Details *</label>
-    <div id="card-element"></div>
+      <!-- BANK -->
+      <div
+        id="bank-section"
+        v-if="current_tab === 'bank'"
+        class="method-section"
+      >
+        <label>Bank account</label>
+        <div id="au-bank-account-element"></div>
+
+        <div id="bank-name"></div>
+      </div>
+
+      <Button class="w-full" @click="submitPayment"> Subscribe </Button>
+    </div>
   </div>
-
-  <!-- BANK -->
-  <div id="bank-section" class="method-section">
-    <label>Bank account</label>
-    <div id="au-bank-account-element"></div>
-
-    <div id="bank-name"></div>
-  </div>
-
-  <Button class="w-full" @click="submitPayment"> Subscribe </Button>
 </template>
+
+<style>
+#container.custom_stripe {
+  background: #fff;
+  padding: 40px 32px;
+  border-radius: 16px;
+  width: 420px;
+  max-width: 100%;
+}
+
+.custom_stripe label {
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+  display: block;
+  color: #374151;
+}
+
+.custom_stripe input,
+.custom_stripe select {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+}
+
+.custom_stripe .method-toggle {
+  display: flex;
+  gap: 10px;
+}
+
+.custom_stripe .method-toggle button {
+  flex: 1;
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.custom_stripe .method-toggle button.active {
+  background: #155eef;
+  color: #fff;
+}
+
+.custom_stripe .method-section {
+  display: none;
+}
+
+.custom_stripe .method-section.active {
+  display: block;
+}
+
+.custom_stripe #card-element,
+.custom_stripe #au-bank-account-element {
+  padding: 12px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.custom_stripe button {
+  width: 100%;
+  padding: 12px;
+  background: #155eef;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.custom_stripe button:disabled {
+  background: #9ca3af !important;
+  cursor: not-allowed;
+}
+
+.custom_stripe #message {
+  margin-top: 10px;
+  text-align: center;
+  color: #dc2626;
+}
+
+.custom_stripe #success-screen {
+  display: none;
+  text-align: center;
+  padding: 40px 20px;
+}
+.input_wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#bank-name {
+  margin-top: 8px;
+  margin-bottom: 16px;
+  min-height: 20px;
+  font-size: 14px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all 400ms cubic-bezier(0.075, 0.82, 0.165, 1);
+}
+
+#bank-name.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
