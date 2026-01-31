@@ -21,14 +21,9 @@ const format_currency = (amt: number) => {
 <template>
   <div class="min-h-full w-full flex justify-center py-8">
     <section class="min-h-full w-[450px]">
-      <Accordion
-        type="single"
-        collapsible
-        class="w-full"
-        default-value="item-1"
-      >
+      <Accordion type="single" class="w-full" default-value="item-1">
         <template v-for="(ser, index) in services">
-          <AccordionItem :value="`item-1-${index}`">
+          <AccordionItem :value="`item-1`">
             <AccordionTrigger>{{ ser.service_name }}</AccordionTrigger>
             <AccordionContent class="bg-gray-50 py-4">
               <div

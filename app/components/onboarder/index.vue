@@ -23,7 +23,7 @@ const steps_components = computed(() => {
     Pricing_details_step,
     Payment_step,
     Terms_step,
-    Success_step,
+    // Success_step,
   ];
 });
 

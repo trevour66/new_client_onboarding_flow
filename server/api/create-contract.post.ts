@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
         mobile: "+12481234567",
         company_name: "ACME Corp",
         signed_document_delivery_method: "email",
-        redirect_url: "https://google.com",
+        redirect_url: process.env.redirect_url,
       },
     ],
     placeholder_fields: placeholder_fields,

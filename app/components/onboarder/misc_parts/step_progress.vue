@@ -16,7 +16,7 @@ const steps = ref([
 </script>
 
 <template>
-  <div class="hidden lg:flex flex-col items-start gap-y-2">
+  <div class="hidden lg:flex flex-col items-start gap-y-2 h-full">
     <template v-for="(step, index) in steps" :key="index">
       <div
         class="flex items-center justify-between gap-x-[20px] hover:cursor-pointer"

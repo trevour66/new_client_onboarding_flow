@@ -1,10 +1,5 @@
 <script setup lang="ts">
 import { loadStripe } from "@stripe/stripe-js";
-import type {
-  StripeElements,
-  StripeAuBankAccountElement,
-  StripeAuBankAccountElementChangeEvent,
-} from "@stripe/stripe-js";
 
 const stripe = await loadStripe(
   "pk_test_51RqkA41CAJ2s4WZlPS0cd1lxYC128w2FRzCKA2gFnSPs2P7kg8hhjM0Ooph9FzrlyfNHc19tQAFJ4Ttpp00VnKqQ005b2WL2y5",
@@ -13,18 +8,13 @@ const stripe = await loadStripe(
 const clientSecret = ref<string | null>(null);
 // const elements = ref<any>(null);
 const current_tab = ref<"card" | "bank">("bank");
-const onboarder_store = useOnboarderStore();
 
 const prepare_setup_intent = async () => {
   if (!stripe) return;
-
-  const stripe_customer_id =
-    onboarder_store.get_payment_data.stripe_customer_id;
-
   const res = await $fetch("/api/stripe/create-setup-intent", {
     method: "POST",
     body: {
-      customer_id: stripe_customer_id,
+      customer_id: "cus_TshTyVwtLbFBdt",
     },
   });
 
@@ -35,15 +25,11 @@ const prepare_setup_intent = async () => {
 
 const prepare_payment = async (payment_method_to_be_used: string) => {
   if (!stripe) return;
-  const stripe_price_id = onboarder_store.get_payment_data.stripe_price_id;
-  const stripe_customer_id =
-    onboarder_store.get_payment_data.stripe_customer_id;
-
   const res = await $fetch("/api/stripe/create-subscription", {
     method: "POST",
     body: {
-      priceId: stripe_price_id,
-      customer_id: stripe_customer_id,
+      priceId: "price_1Suraz1CAJ2s4WZl5BjXPdaN",
+      customer_id: "cus_TshTyVwtLbFBdt",
       payment_method: payment_method_to_be_used,
     },
   });
@@ -52,7 +38,73 @@ const prepare_payment = async (payment_method_to_be_used: string) => {
 };
 
 let card: any = null;
-let auBankAccount: StripeAuBankAccountElement | null = null;
+
+/*
+onMounted(async () => {
+  await prepare_setup_intent();
+
+  if (!stripe) return;
+  if (!clientSecret.value) return;
+
+  const elements = stripe.elements();
+
+  // Mount card element for manual entry
+  card = elements.create("card");
+  card.mount("#payment-element");
+
+  // ---- PAYMENT REQUEST BUTTON ----
+  const paymentRequest = stripe.paymentRequest({
+    country: "AU",
+    currency: "aud",
+    total: { label: "Verify Card", amount: 0 },
+    requestPayerName: true,
+    requestPayerEmail: true,
+  });
+
+  const prButton = elements.create("paymentRequestButton", {
+    paymentRequest: paymentRequest,
+    style: { paymentRequestButton: { type: "default", theme: "light" } },
+  });
+
+  paymentRequest.canMakePayment().then((result) => {
+    const container = document.getElementById("payment-request-button");
+    if (result) {
+      prButton.mount("#payment-request-button");
+    }
+  });
+
+  // Handle auto payment methods (Apple Pay / Google Pay)
+  paymentRequest.on("paymentmethod", async (event) => {
+    if (!clientSecret.value) return;
+
+    const { setupIntent, error } = await stripe.confirmCardSetup(
+      clientSecret.value,
+      {
+        payment_method: event.paymentMethod.id,
+      },
+      {
+        handleActions: false,
+      },
+    );
+
+    if (error) {
+      event.complete("fail");
+      return;
+    }
+
+    event.complete("success");
+
+    if (setupIntent.status === "requires_action") {
+      const { error: actionError } = await stripe.confirmCardSetup(
+        clientSecret.value,
+      );
+      if (actionError) {
+        return;
+      }
+    }
+  });
+});
+*/
 
 onMounted(async () => {
   await prepare_setup_intent();
@@ -135,7 +187,7 @@ onMounted(async () => {
   console.log("here 3");
 
   /* ---------------- BANK ---------------- */
-  auBankAccount = elements.create("auBankAccount");
+  const auBankAccount = elements.create("auBankAccount");
   auBankAccount.mount("#au-bank-account-element");
 
   auBankAccount.on("change", function (event) {
@@ -163,31 +215,12 @@ const submitPayment = async () => {
 
   console.log("here23");
 
-  // const result = await stripe.confirmCardSetup(clientSecret_local, {
-  //   payment_method: {
-  //     card,
-  //     billing_details: { email: "peteriniubong@gmail.com" },
-  //   },
-  // });
-
-  let result: any;
-
-  if (current_tab.value === "card") {
-    result = await stripe.confirmCardSetup(clientSecret_local, {
-      payment_method: {
-        card,
-        // billing_details: { name, email },
-      },
-    });
-  } else {
-    if (!auBankAccount) return;
-    result = await stripe.confirmAuBecsDebitSetup(clientSecret_local, {
-      payment_method: {
-        au_becs_debit: auBankAccount,
-        billing_details: { name: "iniubong", email: "peteriniubong@gmail.com" },
-      },
-    });
-  }
+  const result = await stripe.confirmCardSetup(clientSecret_local, {
+    payment_method: {
+      card,
+      billing_details: { email: "peteriniubong@gmail.com" },
+    },
+  });
 
   const setup = result?.setupIntent ?? false;
   const error = result?.error ?? false;
@@ -236,29 +269,21 @@ const submitPayment = async () => {
         </div>
       </div>
 
-      <div
-        id="card-section"
-        v-show="current_tab == 'card'"
-        class="method-section active"
-      >
+      <div id="card-section" class="method-section active">
         <div id="payment-request-button"></div>
         <label>Card Details *</label>
         <div id="card-element"></div>
       </div>
 
       <!-- BANK -->
-      <div
-        id="bank-section"
-        v-show="current_tab == 'bank'"
-        class="method-section"
-      >
+      <div id="bank-section" class="method-section">
         <label>Bank account</label>
         <div id="au-bank-account-element"></div>
 
         <div id="bank-name"></div>
       </div>
 
-      <button class="w-full p-[12px]" @click="submitPayment">Subscribe</button>
+      <Button class="w-full" @click="submitPayment"> Subscribe </Button>
     </div>
   </div>
 </template>
@@ -302,6 +327,14 @@ const submitPayment = async () => {
 .custom_stripe .method-toggle button.active {
   background: #155eef;
   color: #fff;
+}
+
+.custom_stripe .method-section {
+  display: none;
+}
+
+.custom_stripe .method-section.active {
+  display: block;
 }
 
 .custom_stripe #card-element,
@@ -355,7 +388,7 @@ const submitPayment = async () => {
   transition: all 400ms cubic-bezier(0.075, 0.82, 0.165, 1);
 }
 
-#bank-name.visible {
+#bank-name {
   opacity: 1;
   transform: translateY(0);
 }
